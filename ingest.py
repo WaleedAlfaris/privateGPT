@@ -5,6 +5,8 @@ from typing import List
 from dotenv import load_dotenv
 from multiprocessing import Pool
 from tqdm import tqdm
+from docx.opc.exceptions import PackageNotFoundError
+from time import sleep
 
 from langchain.document_loaders import (
     CSVLoader,
@@ -84,9 +86,15 @@ LOADER_MAPPING = {
 def load_single_document(file_path: str) -> List[Document]:
     ext = "." + file_path.rsplit(".", 1)[-1]
     if ext in LOADER_MAPPING:
-        loader_class, loader_args = LOADER_MAPPING[ext]
-        loader = loader_class(file_path, **loader_args)
-        return loader.load()
+        try:
+            loader_class, loader_args = LOADER_MAPPING[ext]
+            loader = loader_class(file_path, **loader_args)
+            return loader.load()
+        except PackageNotFoundError:
+            loader_class, loader_args = LOADER_MAPPING[ext]
+            loader = loader_class(file_path, **loader_args)
+            sleep(5)
+            return loader.load()
 
     raise ValueError(f"Unsupported file extension '{ext}'")
 
